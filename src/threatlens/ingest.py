@@ -1,43 +1,35 @@
-from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader, TextLoader
-from langchain_openai import OpenAIEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from .config import CHROMA_PATH, CHUNK_OVERLAP, CHUNK_SIZE, DATA_DIR, EMBEDDING_MODEL
-
-
-def _load_documents(data_dir: str) -> list:
-    loaders = [
-        DirectoryLoader(data_dir, glob="**/*.pdf", loader_cls=PyPDFLoader, silent_errors=True),
-        DirectoryLoader(data_dir, glob="**/*.txt", loader_cls=TextLoader, silent_errors=True),
-        DirectoryLoader(data_dir, glob="**/*.md", loader_cls=TextLoader, silent_errors=True),
-    ]
-    docs = []
-    for loader in loaders:
-        try:
-            docs.extend(loader.load())
-        except Exception:
-            pass
-    return docs
+from .config import CHROMA_PATH, CHUNK_OVERLAP, CHUNK_SIZE, EMBED_MODEL, OLLAMA_BASE_URL, OTX_API_KEY
+from .feeds.mitre import load_mitre_techniques
+from .feeds.abusech import load_threatfox_iocs
+from .feeds.otx import load_otx_pulses
 
 
-def ingest(data_dir: str | None = None) -> int:
-    data_dir = data_dir or DATA_DIR
+def ingest(_path: str | None = None) -> int:
+    print("Loading MITRE ATT&CK techniques...")
+    mitre_docs = load_mitre_techniques()
+    print(f"  {len(mitre_docs)} techniques loaded")
 
-    print(f"Loading documents from {data_dir} ...")
-    docs = _load_documents(data_dir)
-    if not docs:
-        print("No documents found. Drop .pdf, .txt, or .md files into the data directory.")
-        return 0
+    print("Loading ThreatFox IOCs (last 7 days)...")
+    threatfox_docs = load_threatfox_iocs()
+    print(f"  {len(threatfox_docs)} IOCs loaded")
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP,
-    )
-    chunks = splitter.split_documents(docs)
-    print(f"Split {len(docs)} document(s) into {len(chunks)} chunks.")
+    all_docs = mitre_docs + threatfox_docs
 
-    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    if OTX_API_KEY:
+        print("Loading OTX pulses...")
+        otx_docs = load_otx_pulses(OTX_API_KEY)
+        print(f"  {len(otx_docs)} pulses loaded")
+        all_docs += otx_docs
+
+    splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+    chunks = splitter.split_documents(all_docs)
+    print(f"\nIndexing {len(chunks)} chunks...")
+
+    embeddings = OllamaEmbeddings(model=EMBED_MODEL, base_url=OLLAMA_BASE_URL)
     Chroma.from_documents(chunks, embeddings, persist_directory=CHROMA_PATH)
     print(f"Stored {len(chunks)} chunks in {CHROMA_PATH}.")
     return len(chunks)

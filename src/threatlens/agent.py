@@ -1,10 +1,10 @@
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_chroma import Chroma
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 
-from .config import CHROMA_PATH, EMBEDDING_MODEL, MODEL_NAME, RETRIEVAL_K
+from .config import CHROMA_PATH, EMBED_MODEL, CHAT_MODEL, OLLAMA_BASE_URL, RETRIEVAL_K
 
 _SYSTEM_PROMPT = """You are ThreatLens, a specialized threat intelligence analyst assistant.
 Answer questions about threat actors, TTPs (tactics, techniques, and procedures), IOCs
@@ -17,11 +17,11 @@ Context:
 
 
 def build_chain():
-    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    embeddings = OllamaEmbeddings(model=EMBED_MODEL, base_url=OLLAMA_BASE_URL)
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embeddings)
     retriever = db.as_retriever(search_kwargs={"k": RETRIEVAL_K})
 
-    llm = ChatOpenAI(model=MODEL_NAME, temperature=0)
+    llm = ChatOllama(model=CHAT_MODEL, base_url=OLLAMA_BASE_URL, temperature=0)
     prompt = ChatPromptTemplate.from_messages([
         ("system", _SYSTEM_PROMPT),
         ("human", "{input}"),

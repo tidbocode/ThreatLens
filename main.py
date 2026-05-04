@@ -1,17 +1,11 @@
 import argparse
 import sys
+from pathlib import Path
 
 
-def _check_api_key():
-    from src.threatlens.config import OPENAI_API_KEY
-    if not OPENAI_API_KEY:
-        print("Error: OPENAI_API_KEY is not set. Copy .env.example to .env and add your key.")
-        sys.exit(1)
-
-
-def cmd_ingest(args):
+def cmd_ingest(_args):
     from src.threatlens.ingest import ingest
-    ingest(args.path)
+    ingest()
 
 
 def cmd_ask(args):
@@ -23,6 +17,10 @@ def cmd_ask(args):
 
 
 def cmd_chat(_args):
+    from src.threatlens.config import CHROMA_PATH
+    if not Path(CHROMA_PATH).exists():
+        print("No index found. Run 'python main.py ingest' first.")
+        sys.exit(1)
     from src.threatlens.agent import ask, build_chain
     print("ThreatLens — interactive mode. Type 'exit' to quit.\n")
     chain = build_chain()
@@ -44,24 +42,19 @@ def cmd_chat(_args):
 
 
 def main():
-    _check_api_key()
-
     parser = argparse.ArgumentParser(
         prog="threatlens",
-        description="ThreatLens — LangChain-powered threat intelligence Q&A agent",
+        description="ThreatLens — local threat intelligence Q&A (powered by Ollama + LangChain)",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_ingest = sub.add_parser("ingest", help="Ingest documents into the vector store")
-    p_ingest.add_argument("--path", default=None, help="Directory to ingest (default: ./data)")
-    p_ingest.set_defaults(func=cmd_ingest)
+    sub.add_parser("ingest", help="Pull threat feeds and build vector index").set_defaults(func=cmd_ingest)
 
     p_ask = sub.add_parser("ask", help="Ask a single question and exit")
     p_ask.add_argument("question", nargs="+", help="The question to ask")
     p_ask.set_defaults(func=cmd_ask)
 
-    p_chat = sub.add_parser("chat", help="Start an interactive chat session")
-    p_chat.set_defaults(func=cmd_chat)
+    sub.add_parser("chat", help="Start an interactive chat session").set_defaults(func=cmd_chat)
 
     args = parser.parse_args()
     args.func(args)
