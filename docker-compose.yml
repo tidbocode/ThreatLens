@@ -1,0 +1,12 @@
+services:
+  threatlens:
+    build: .
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - chroma_db:/app/chroma_db
+    stdin_open: true
+    tty: true
+
+volumes:
+  chroma_db:
