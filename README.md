@@ -5,28 +5,46 @@ Ingest threat reports, advisories, and IOC files, then ask natural-language ques
 
 ## Setup
 
+**Local**
 ```bash
 pip install -r requirements.txt
 cp .env.example .env          # add your OPENAI_API_KEY
+```
+
+**Docker**
+```bash
+cp .env.example .env          # add your OPENAI_API_KEY
+docker compose build
 ```
 
 ## Usage
 
 **Ingest documents** (PDF, TXT, MD) from the `data/` directory:
 ```bash
+# local
 python main.py ingest
 python main.py ingest --path /path/to/reports
+
+# docker
+docker compose run --rm threatlens ingest
 ```
 
 **Ask a single question:**
 ```bash
+# local
 python main.py ask "What TTPs does APT29 use?"
-python main.py ask "List IOCs associated with Cobalt Strike beacons"
+
+# docker
+docker compose run --rm threatlens ask "What TTPs does APT29 use?"
 ```
 
 **Interactive chat:**
 ```bash
+# local
 python main.py chat
+
+# docker
+docker compose run --rm threatlens chat
 ```
 
 ## Project structure
