@@ -1,3 +1,4 @@
+![image](https://github.com/tidbocode/ThreatLens/blob/main/TL-SystemArchitecture.jpg)
 # ThreatLens
 LangChain-powered threat intelligence Q&A agent — runs fully locally via Ollama.
 
