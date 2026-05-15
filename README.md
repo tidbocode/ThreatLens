@@ -56,6 +56,18 @@ python main.py chat
 docker compose run --rm threatlens chat
 ```
 
+**Web dashboard** (chat + IOC browser + MITRE technique browser):
+```bash
+# local
+streamlit run dashboard.py
+
+# docker
+docker compose up dashboard
+# then open http://localhost:8501
+```
+
+> Docker note: the dashboard container reaches Ollama on the host via `host.docker.internal`. Set `OLLAMA_BASE_URL=http://host.docker.internal:11434` in `.env` when running under Docker.
+
 ## Project structure
 
 ```
@@ -68,8 +80,10 @@ ThreatLens/
 │   │   └── otx.py           # AlienVault OTX pulses (optional)
 │   ├── config.py            # env-based configuration
 │   ├── ingest.py            # feed ingestion and embedding
-│   └── agent.py             # RAG chain (Ollama + Chroma)
+│   ├── agent.py             # RAG chain (Ollama + Chroma)
+│   └── stats.py             # Chroma metadata queries for the dashboard
 ├── main.py                  # CLI entry point
+├── dashboard.py             # Streamlit web dashboard
 ├── requirements.txt
 ├── Dockerfile
 ├── docker-compose.yml
